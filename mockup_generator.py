@@ -16,9 +16,9 @@ Preview placement and generate mockups in batches.
 
 # --- Sidebar Controls ---
 plain_padding_ratio = st.sidebar.slider("Padding Ratio – Plain Shirt", 0.1, 1.0, 0.45, 0.05)
-model_padding_ratio = st.sidebar.slider("Padding Ratio – Model Shirt", 0.1, 1.0, 0.35, 0.05)
-plain_offset_pct = st.sidebar.slider("Vertical Offset – Plain Shirt (%)", -50, 100, -7, 1)
-model_offset_pct = st.sidebar.slider("Vertical Offset – Model Shirt (%)", -50, 100, 3, 1)
+model_padding_ratio = st.sidebar.slider("Padding Ratio – Model Shirt", 0.1, 1.0, 0.45, 0.05)
+plain_offset_pct = st.sidebar.slider("Vertical Offset – Plain Shirt (%)", -50, 100, 23, 1)
+model_offset_pct = st.sidebar.slider("Vertical Offset – Model Shirt (%)", -50, 100, 38, 1)
 
 # --- Session Setup ---
 if "zip_files_output" not in st.session_state:
@@ -163,3 +163,4 @@ if st.button("🚀 Generate Mockups for Selected Batch"):
             file_name="all_mockups_by_design.zip",
             mime="application/zip"
         )
+
