@@ -111,45 +111,51 @@ if st.button("🚀 Generate Mockups for Selected Batch"):
     if not (selected_batch and shirt_files):
         st.warning("Upload at least one design and one shirt template.")
     else:
-        total_tasks = len(selected_batch) * len(shirt_files)
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        results = []
-
-        with ThreadPoolExecutor() as executor:
-            futures = []
+        master_zip = io.BytesIO()
+        with zipfile.ZipFile(master_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
             for design_file in selected_batch:
-                design_name = st.session_state.design_names.get(design_file.name, "graphic")
+                graphic_name = st.session_state.design_names.get(design_file.name, "graphic")
+                design_file.seek(0)
+                design = Image.open(design_file).convert("RGBA")
+
                 for shirt_file in shirt_files:
+                    color_name = os.path.splitext(shirt_file.name)[0]
+                    shirt_file.seek(0)
+                    shirt = Image.open(shirt_file).convert("RGBA")
+
                     is_model = "model" in shirt_file.name.lower()
                     offset_pct = model_offset_pct if is_model else plain_offset_pct
                     padding_ratio = model_padding_ratio if is_model else plain_padding_ratio
-                    futures.append(executor.submit(
-                        generate_mockup,
-                        st.session_state.design_bytes[design_file.name],
-                        design_name,
-                        shirt_file.name,
-                        st.session_state.shirt_bytes[shirt_file.name],
-                        padding_ratio,
-                        offset_pct
-                    ))
 
-            for i, future in enumerate(as_completed(futures), 1):
-                results.append(future.result())
-                progress_bar.progress(int(i / total_tasks * 100))
-                status_text.text(f"Processing {i}/{total_tasks} mockups...")
+                    bbox = get_shirt_bbox(shirt)
+                    if bbox:
+                        sx, sy, sw, sh = bbox
+                        scale = min(sw / design.width, sh / design.height, 1.0) * padding_ratio
+                        new_width = int(design.width * scale)
+                        new_height = int(design.height * scale)
+                        resized_design = design.resize((new_width, new_height))
+                        y_offset = int(sh * offset_pct / 100)
+                        x = sx + (sw - new_width) // 2
+                        y = sy + y_offset
+                    else:
+                        resized_design = design
+                        x = (shirt.width - design.width) // 2
+                        y = (shirt.height - design.height) // 2
 
-        # Zip everything
-        zip_buf = io.BytesIO()
-        with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            for filename, img_bytes in results:
-                zf.writestr(filename, img_bytes)
+                    shirt_copy = shirt.copy()
+                    shirt_copy.paste(resized_design, (x, y), resized_design)
 
-        zip_buf.seek(0)
-        st.success("✅ Mockup generation complete!")
+                    # Save directly into master ZIP
+                    output_name = f"{graphic_name}_{color_name}_tee.png"
+                    img_byte_arr = io.BytesIO()
+                    shirt_copy.save(img_byte_arr, format='PNG')
+                    img_byte_arr.seek(0)
+                    zipf.writestr(output_name, img_byte_arr.getvalue())
+
+        master_zip.seek(0)
         st.download_button(
-            "📦 Download All Mockups (ZIP)",
-            data=zip_buf,
+            label="📦 Download All Mockups",
+            data=master_zip,
             file_name="all_mockups.zip",
             mime="application/zip"
         )
