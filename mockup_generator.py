@@ -111,7 +111,7 @@ if st.button("🚀 Generate Mockups for Selected Batch"):
     if not (selected_batch and shirt_files):
         st.warning("Upload at least one design and one shirt template.")
     else:
-                master_zip = io.BytesIO()
+        master_zip = io.BytesIO()
         with zipfile.ZipFile(master_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
             for design_file in selected_batch:
                 graphic_name = st.session_state.design_names.get(design_file.name, "graphic")
@@ -145,21 +145,17 @@ if st.button("🚀 Generate Mockups for Selected Batch"):
                     shirt_copy = shirt.copy()
                     shirt_copy.paste(resized_design, (x, y), resized_design)
 
-                    # Save directly into master ZIP
+                    # Save directly into master ZIP (flat structure)
                     output_name = f"{graphic_name}_{color_name}_tee.png"
                     img_byte_arr = io.BytesIO()
                     shirt_copy.save(img_byte_arr, format='PNG')
                     img_byte_arr.seek(0)
                     zipf.writestr(output_name, img_byte_arr.getvalue())
 
-
         master_zip.seek(0)
         st.download_button(
-            label="📦 Download All Mockups (Grouped by Design)",
+            label="📦 Download All Mockups",
             data=master_zip,
-            file_name="all_mockups_by_design.zip",
+            file_name="all_mockups.zip",
             mime="application/zip"
         )
-
-
-
